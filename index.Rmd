@@ -1,0 +1,345 @@
+---
+title: "index"
+output: html_document
+---
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE} 
+library(dplyr)
+library(plotly)
+library(lubridate)
+
+setwd("/Users/amywang/Documents/HEALTH_E_repository/data/")
+participant1_data <- read.csv("P1_LotData.csv", stringsAsFactors=FALSE)
+
+# Changing variable names in sensor_type
+participant1_data$sensor_type[participant1_data$sensor_type ==
+                                "multisensor:sensormultilevel::batterylevel:"] <- "battery"
+participant1_data$sensor_type[participant1_data$sensor_type ==
+                                "multisensor:sensormultilevel::luminositysensor:"] <- "luminosity"
+participant1_data$sensor_type[participant1_data$sensor_type ==
+                                "multisensor:sensormultilevel::humiditysensor:"] <- "humidity"
+participant1_data$sensor_type[participant1_data$sensor_type ==
+                                "multisensor:sensormultilevel::temperaturesensor:"] <- "temperature"
+participant1_data$sensor_type[participant1_data$sensor_type == "multisensor:sensor:"] <- "motion"
+
+# Mutating data frame by adding a column of readable dates and times, hours
+participant1_data <- mutate(participant1_data, readable_date = 
+                              as.POSIXct(date, format = "%m/%d/%Y %I:%M:%S %p"))
+participant1_data <- mutate(participant1_data, hour = hour(readable_date))
+participant1_data <- mutate(participant1_data, day = day(readable_date))
+```
+
+# Participant 1: February 4, 2016 (Sample day)
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE} 
+feb_fourth <- filter(participant1_data, day == 4)
+feb_fourth_motion <- filter(feb_fourth, sensor_type == "motion")
+feb_fourth_light <- filter(feb_fourth, sensor_type == "luminosity")
+feb_fourth_temp <- filter(feb_fourth, sensor_type == "temperature")
+feb_fourth_humidity <- filter(feb_fourth, sensor_type == "humidity")
+```
+
+## Motion
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE} 
+day4_motion_summary <- group_by(feb_fourth_motion, hour) %>%
+  summarise(motion_per_hour = sum(recorded == 255))
+
+plot_ly(day4_motion_summary, 
+         x = hour, 
+         y = motion_per_hour,
+         name = "data") %>%
+   add_trace(y = fitted(loess(motion_per_hour ~ hour)),
+             name = "local regression") %>%
+   layout(title = "P1 Motion trends from 2/04/16")
+```
+
+## Luminosity 
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE} 
+plot_ly(feb_fourth_light, 
+         x = date, 
+         y = recorded,
+         name = "data") %>%
+   add_trace(y = fitted(loess(recorded ~ as.numeric(readable_date))),
+             name = "local regression") %>%
+   layout(title = "P1 Luminosity trends from 2/04/16")
+```
+
+## Temperature
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE} 
+plot_ly(feb_fourth_temp, 
+         x = date, 
+         y = recorded,
+         name = "data") %>%
+   add_trace(y = fitted(loess(recorded ~ as.numeric(readable_date))),
+             name = "local regression") %>%
+   layout(title = "P1 Temperature trends from 2/04/16")
+```
+
+## Humidity
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE} 
+plot_ly(feb_fourth_humidity, 
+         x = date, 
+         y = recorded,
+         name = "data") %>%
+   add_trace(y = fitted(loess(recorded ~ as.numeric(readable_date))),
+             name = "local regression") %>%
+   layout(title = "P1 Humidity trends from 2/04/16")
+```
+
+# Participant 1: Summary (averaged data)
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}  
+# Graphing motion
+p1_motion <- filter(participant1_data, sensor_type == "motion")
+
+summary_motion_by_hour <- group_by(p1_motion, hour) %>%
+  summarise(motion_per_hour = sum(recorded == 255))
+
+plot_ly(summary_motion_by_hour, 
+        x = hour, 
+        y = motion_per_hour,
+        name = "data") %>%
+  add_trace(y = fitted(loess(motion_per_hour ~ hour)),
+            name = "local regression")%>%
+  layout(title = "P1: Average amount of motion per hour<br>from dates 2/04/16 - 2/15/16")
+```
+
+ 
+```{r, echo = FALSE, message = FALSE, warning = FALSE}  
+# Graphing luminosity 
+p1_luminosity <- filter(participant1_data, sensor_type == "luminosity")
+
+summary_light_by_hour <- group_by(p1_luminosity, hour) %>%
+  summarise(light_per_hour = sum(recorded))
+
+plot_ly(summary_light_by_hour, 
+        x = hour, 
+        y = light_per_hour,
+        name = "data") %>%
+  add_trace(y = fitted(loess(light_per_hour ~ hour)),
+            name = "local regression")%>%
+  layout(title = "P1: Average amount of light per hour<br>from dates 2/04/16 - 2/15/16")
+```
+
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}  
+# Graphing temperature 
+p1_temp <- filter(participant1_data, sensor_type == "temperature")
+
+summary_temp_by_hour <- group_by(p1_temp, hour) %>%
+  summarise(temp_per_hour = mean(recorded))
+
+plot_ly(summary_temp_by_hour, 
+        x = hour, 
+        y = temp_per_hour,
+        name = "data") %>%
+  add_trace(y = fitted(loess(temp_per_hour ~ hour)),
+            name = "local regression")%>%
+  layout(title = "P1: Average temperature per hour<br>from dates 2/04/16 - 2/15/16")
+```
+
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}  
+#Graphing humidity
+p1_humid<- filter(participant1_data, sensor_type == "humidity")
+
+summary_humid_by_hour <- group_by(p1_humid, hour) %>%
+  summarise(humid_per_hour = mean(recorded))
+
+plot_ly(summary_humid_by_hour, 
+        x = hour, 
+        y = humid_per_hour,
+        name = "data") %>%
+  add_trace(y = fitted(loess(humid_per_hour ~ hour)),
+            name = "local regression")%>%
+  layout(title = "P1: Average humidity per hour<br>from dates 2/04/16 - 2/15/16")
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE} 
+setwd("/Users/amywang/Documents/HEALTH_E_repository/data/")
+participant2_data <- read.csv("P2_LotData.csv", stringsAsFactors=FALSE)
+
+# Changing variable names in sensor_type
+participant2_data$sensor_type[participant2_data$sensor_type ==
+                                "ms_p2:sensormultilevel::batterylevel:"] <- "battery"
+participant2_data$sensor_type[participant2_data$sensor_type ==
+                                "ms_p2:sensormultilevel::luminositysensor:"] <- "luminosity"
+participant2_data$sensor_type[participant2_data$sensor_type ==
+                                "ms_p2:sensormultilevel::humiditysensor:"] <- "humidity"
+participant2_data$sensor_type[participant2_data$sensor_type ==
+                                "ms_p2:sensormultilevel::temperaturesensor:"] <- "temperature"
+participant2_data$sensor_type[participant2_data$sensor_type == "dws1_p2:sensor:"] <- "door_window"
+participant2_data$sensor_type[participant2_data$sensor_type == "ms_p2:sensor:"] <- "motion"
+
+# Mutating data frame by adding a column of readable dates and times, hours
+participant2_data <- mutate(participant2_data, readable_date = 
+                              as.POSIXct(date, format = "%m/%d/%Y %I:%M:%S %p"))
+participant2_data <- mutate(participant2_data, hour = hour(readable_date))
+participant2_data <- mutate(participant2_data, day = day(readable_date))
+```
+
+# Participant 2: Summary (averaged data)
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}  
+# Graphing motion
+p2_motion <- filter(participant2_data, sensor_type == "motion")
+
+summary_motion_by_hour_2 <- group_by(p2_motion, hour) %>%
+  summarise(motion_per_hour = sum(recorded == 255))
+
+plot_ly(summary_motion_by_hour_2, 
+        x = hour, 
+        y = motion_per_hour,
+        name = "data") %>%
+  add_trace(y = fitted(loess(motion_per_hour ~ hour)),
+            name = "local regression")%>%
+  layout(title = "P2: Average amount of motion per hour<br>from dates 2/08/16 - 2/15/16")
+```
+
+ 
+```{r, echo = FALSE, message = FALSE, warning = FALSE}  
+# Graphing luminosity 
+p2_luminosity <- filter(participant2_data, sensor_type == "luminosity")
+
+summary_light_by_hour_2 <- group_by(p2_luminosity, hour) %>%
+  summarise(light_per_hour = sum(recorded))
+
+plot_ly(summary_light_by_hour_2, 
+        x = hour, 
+        y = light_per_hour,
+        name = "data") %>%
+  add_trace(y = fitted(loess(light_per_hour ~ hour)),
+            name = "local regression")%>%
+  layout(title = "P2: Average amount of light per hour<br>from dates 2/08/16 - 2/15/16")
+```
+
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}  
+# Graphing temperature 
+p2_temp <- filter(participant2_data, sensor_type == "temperature")
+
+summary_temp_by_hour_2 <- group_by(p2_temp, hour) %>%
+  summarise(temp_per_hour = mean(recorded))
+
+plot_ly(summary_temp_by_hour_2, 
+        x = hour, 
+        y = temp_per_hour,
+        name = "data") %>%
+  add_trace(y = fitted(loess(temp_per_hour ~ hour)),
+            name = "local regression")%>%
+  layout(title = "P2: Average temperature per hour<br>from dates 2/08/16 - 2/15/16")
+```
+
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}  
+#Graphing humidity
+p2_humid<- filter(participant2_data, sensor_type == "humidity")
+
+summary_humid_by_hour_2 <- group_by(p2_humid, hour) %>%
+  summarise(humid_per_hour = mean(recorded))
+
+plot_ly(summary_humid_by_hour_2, 
+        x = hour, 
+        y = humid_per_hour,
+        name = "data") %>%
+  add_trace(y = fitted(loess(humid_per_hour ~ hour)),
+            name = "local regression")%>%
+  layout(title = "P2: Average humidity per hour<br>from dates 2/08/16 - 2/15/16")
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE} 
+setwd("/Users/amywang/Documents/HEALTH_E_repository/data/")
+participant3_data <- read.csv("P3_LotData.csv", stringsAsFactors=FALSE)
+
+# Changing variable names in sensor_type
+participant3_data$sensor_type[participant3_data$sensor_type ==
+                                "ms_p3:sensormultilevel::batterylevel:"] <- "battery"
+participant3_data$sensor_type[participant3_data$sensor_type ==
+                                "ms_p3:sensormultilevel::luminositysensor:"] <- "luminosity"
+participant3_data$sensor_type[participant3_data$sensor_type ==
+                                "ms_p3:sensormultilevel::humiditysensor:"] <- "humidity"
+participant3_data$sensor_type[participant3_data$sensor_type ==
+                                "ms_p3:sensormultilevel::temperaturesensor:"] <- "temperature"
+#participant3_data$sensor_type[participant3_data$sensor_type == "dws1_p3:sensor:"] <- "door_window"
+participant3_data$sensor_type[participant3_data$sensor_type == "ms_p3:sensor:"] <- "motion"
+
+# Mutating data frame by adding a column of readable dates and times, hours
+participant3_data <- mutate(participant3_data, readable_date = 
+                              as.POSIXct(date, format = "%m/%d/%Y %I:%M:%S %p"))
+participant3_data <- mutate(participant3_data, hour = hour(readable_date))
+participant3_data <- mutate(participant3_data, day = day(readable_date))
+```
+
+# Participant 3: Summary (averaged data)
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}  
+# Graphing motion
+p3_motion <- filter(participant3_data, sensor_type == "motion")
+
+summary_motion_by_hour_3 <- group_by(p3_motion, hour) %>%
+  summarise(motion_per_hour = sum(recorded == 255))
+
+plot_ly(summary_motion_by_hour_3, 
+        x = hour, 
+        y = motion_per_hour,
+        name = "data") %>%
+  add_trace(y = fitted(loess(motion_per_hour ~ hour)),
+            name = "local regression")%>%
+  layout(title = "P3: Average amount of motion per hour<br>from dates 2/05/16 - 2/15/16")
+```
+
+ 
+```{r, echo = FALSE, message = FALSE, warning = FALSE}  
+# Graphing luminosity 
+p3_luminosity <- filter(participant3_data, sensor_type == "luminosity")
+
+summary_light_by_hour_3 <- group_by(p3_luminosity, hour) %>%
+  summarise(light_per_hour = sum(recorded))
+
+plot_ly(summary_light_by_hour_3, 
+        x = hour, 
+        y = light_per_hour,
+        name = "data") %>%
+  add_trace(y = fitted(loess(light_per_hour ~ hour)),
+            name = "local regression")%>%
+  layout(title = "P3: Average amount of light per hour<br>from dates 2/05/16 - 2/15/16")
+```
+
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}  
+# Graphing temperature 
+p3_temp <- filter(participant3_data, sensor_type == "temperature")
+
+summary_temp_by_hour_3 <- group_by(p3_temp, hour) %>%
+  summarise(temp_per_hour = mean(recorded))
+
+plot_ly(summary_temp_by_hour_3, 
+        x = hour, 
+        y = temp_per_hour,
+        name = "data") %>%
+  add_trace(y = fitted(loess(temp_per_hour ~ hour)),
+            name = "local regression")%>%
+  layout(title = "P3: Average temperature per hour<br>from dates 2/05/16 - 2/15/16")
+```
+
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}  
+#Graphing humidity
+p3_humid<- filter(participant3_data, sensor_type == "humidity")
+
+summary_humid_by_hour_3 <- group_by(p3_humid, hour) %>%
+  summarise(humid_per_hour = mean(recorded))
+
+plot_ly(summary_humid_by_hour_3, 
+        x = hour, 
+        y = humid_per_hour,
+        name = "data") %>%
+  add_trace(y = fitted(loess(humid_per_hour ~ hour)),
+            name = "local regression")%>%
+  layout(title = "P3: Average humidity per hour<br>from dates 2/05/16 - 2/15/16")
+```
+
